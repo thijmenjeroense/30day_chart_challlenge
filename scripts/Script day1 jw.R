@@ -115,17 +115,38 @@ data <- data %>%
 
 plot <- data %>% ggplot(aes(x = monthyear1, y = percentage, group = value)) +
   geom_line(aes(colour = value)) +
-  geom_ribbon(aes(ymin = min, ymax = max), alpha = 0.2) +
+  geom_ribbon(aes(ymin = min, ymax = max), alpha = 0.4,  fill = "#A63737") +
   theme(axis.text.x = element_text(angle = 45)) +
   xlab("Date (year-month)") +
   ylab("% Positive covid tests") +
-  ggtitle("Percentages of Positive Covid Tests in the Netherlands: \nAll municipalities versus Urk")
+  ggtitle("Percentages of Positive Covid Tests in the Netherlands: \nAll municipalities versus Urk") +
+  labs(caption = "@JetWildeman \n @ThijmenJeroense") +
+  theme(axis.text.x = element_text(angle = 45),
+        axis.text = element_text(colour = "#E0E0E0"),
+        axis.title = element_text(colour = "#E0E0E0"),
+        plot.title = element_text(hjust = 0.5,
+                                  colour = "#E0E0E0", 
+                                  size = 18),
+        plot.caption = element_text(colour = "#E0E0E0"),
+        panel.background = element_rect(colour = "#202020",
+                                        fill = "#202020"),
+        panel.grid = element_line(colour = "#000000"),
+        plot.background = element_rect(colour = "#202020",
+                                       fill = "#202020"),
+        legend.background = element_rect(colour = "#202020",
+                                         fill = "#202020"),
+        legend.position = "bottom",
+        legend.key = element_rect(colour = "#202020",
+                                  fill = "#202020"),
+        legend.text = element_text(colour = "#E0E0E0"),
+        legend.title = element_text(colour = "#E0E0E0"))
 
 
-plot + scale_color_discrete(name="Municipalities",
+plot_day_1 <- plot + scale_color_discrete(name="Municipalities",
                          breaks=c("covid_overall", "Urk"),
                          labels=c("All", "Urk"))
 
+ggsave(plot = plot_day_1, file = "plots/day_1/plot_day_1.tiff", height = 5, width = 7, dpi = 320)
 
 
 
