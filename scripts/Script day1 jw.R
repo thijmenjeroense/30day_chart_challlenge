@@ -107,34 +107,26 @@ subset2 <-  chart_data_total[64:126,] %>%
 
 data <- rbind(subset2, subset_mean)
 
-data %>%
+data <- data %>%
   filter((value %in% c("Urk", "covid_overall")) &
            monthyear != "2022-03") %>%
   mutate(monthyear1=str_sub(monthyear, start=3, end=7),
-         monthyear1=paste0("'", monthyear1)) %>%
-  ggplot(aes(x = monthyear1, y = percentage, group = value)) +
+         monthyear1=paste0("'", monthyear1)) 
+
+plot <- data %>% ggplot(aes(x = monthyear1, y = percentage, group = value)) +
   geom_line(aes(colour = value)) +
   geom_ribbon(aes(ymin = min, ymax = max), alpha = 0.2) +
   theme(axis.text.x = element_text(angle = 45)) +
   xlab("Date (year-month)") +
   ylab("% Positive covid tests") +
-  ggtitle("Percentages of Positive Covid Tests: \nAll municipalities versus Urk")+
-  scale_fill_manual(name="Municipalities",
-                    breaks=c("covid_overall", "Urk"),
-                    labels=c("All", "Urk"))
+  ggtitle("Percentages of Positive Covid Tests in the Netherlands: \nAll municipalities versus Urk")
+
+
+plot + scale_color_discrete(name="Municipalities",
+                         breaks=c("covid_overall", "Urk"),
+                         labels=c("All", "Urk"))
 
 
 
-bp + scale_fill_manual(values=c("#999999", "#E69F00", "#56B4E9"), 
-                       name="Experimental\nCondition",
-                       breaks=c("ctrl", "trt1", "trt2"),
-                       labels=c("Control", "Treatment 1", "Treatment 2"))
-
-
-### Create first chart for chart_data2
-chart_data2 %>% ggplot(aes(x=monthyear, y="percentage"))+
-  geom_line()
-
-head(chart_data2)
 
   
