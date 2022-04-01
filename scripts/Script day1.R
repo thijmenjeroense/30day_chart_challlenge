@@ -11,24 +11,23 @@ library(stringr)
 library(ggplot2)
 library(tidyr)
 
-# setting working directory
-setwd("C:/Users/u955140/surfdrive/Plots/#30daychartchallenge/Day 1")
-
 # Load data
-elections <- read.xlsx("Gemeente uitslagen tweede kamer verkiezing 2021.xlsx")
-covid<- read.csv("COVID-19_aantallen_gemeente_per_dag.csv", sep=";")
-popsize <- read.xlsx("Regionale_kerncijfers_Nederland_01042022_140107.xlsx")
+elections <- read.xlsx("data-raw/Gemeente uitslagen tweede kamer verkiezing 2021.xlsx")
+covid<- read.csv("data-raw/COVID-19_aantallen_gemeente_per_dag.csv", sep=";")
+popsize <- read.xlsx("data-raw/Regionale_kerncijfers_Nederland_01042022_140107.xlsx")
 
 
 # Create percentage SGP voters for each municipality
-elections <- elections %>% select(RegioCode, GeldigeStemmen, "Staatkundig.Gereformeerde.Partij.(SGP)") %>% 
+elections <- elections %>% 
+  select(RegioCode, GeldigeStemmen, "Staatkundig.Gereformeerde.Partij.(SGP)") %>% 
   rename(SGP="Staatkundig.Gereformeerde.Partij.(SGP)") %>%
   mutate(perc_sgp=SGP/GeldigeStemmen*100)
 
 
 # Create monthly COVID incidents for each municipality
 # I need: Municipality_code, Total_reported, Data_of_publication
-covid <- covid %>% mutate(monthyear=str_sub(Date_of_publication, start=1, end=7)) %>%
+covid <- covid %>% 
+  mutate(monthyear=str_sub(Date_of_publication, start=1, end=7)) %>%
   group_by(monthyear, Municipality_code) %>%
   summarise(n_inf=sum(Total_reported))
 
@@ -38,34 +37,83 @@ covid <- covid %>% filter(monthyear!="2020-02", monthyear!="2020-03",
                           monthyear!="2020-06")
 
 # Now I can make percentages of Covid infections on the total population
-covid <- covid %>% left_join(popsize, by=c("Municipality_code"="code")) %>%
+covid <- covid %>% 
+  left_join(popsize, by=c("Municipality_code"="code")) %>%
   filter(!is.na(aantal)) %>%
   mutate(perc_inf=n_inf/aantal*100)
 
 
 # Now I only need to merge elections and covid together
-covid <- covid %>% mutate(id=str_sub(Municipality_code, start=3, end=6)) %>% select(id, perc_inf, monthyear)
+covid <- covid %>% 
+  mutate(id=str_sub(Municipality_code, start=3, end=6)) %>%
+  select(id, perc_inf, monthyear)
+
 elections <- elections %>% mutate(id=str_sub(RegioCode, start=2, end=5)) %>% select(id, perc_sgp)
 
 # create final data
-chart_data <- covid %>% left_join(elections)
+chart_data <- covid %>% 
+  left_join(elections)
 
 
 ## Create gem percentage of infections over all municipalities 
-chart_data2 <- chart_data %>% group_by(monthyear) %>% summarise(covid_per_mean=mean(perc_inf),
-                                                                covid_per_25=quantile(perc_inf, 0.25),
-                                                                covid_per_75=quantile(perc_inf, 0.75)) 
+chart_data2 <- chart_data %>%
+  group_by(monthyear) %>% 
+  summarise(covid_per_mean=mean(perc_inf),
+            covid_per_25=quantile(perc_inf, 0.25),
+            covid_per_75=quantile(perc_inf, 0.75)) 
 
 chart_data2$id <- "overall"
 
-chart_data4 <- chart_data2 %>% pivot_longer(covid_per_mean:covid_per_75,names_to="value", values_to="percentage")
+chart_data4 <- chart_data2 %>% 
+  pivot_longer(covid_per_mean:covid_per_75,names_to="value", values_to="percentage")
 
 # And I want to make this graph for the municipality with the highest percentage of SGP voters
 #chart_data3 <- chart_data %>% group_by(id) %>% summarise(SGP=first(perc_sgp))
 #max(chart_data3$perc_sgp)
 # municipalities: 0184 (Urk), 0703 (Reimerswaal), 0180 (Staphorst)
-chart_data3 <- chart_data %>% mutate(id=as.character(id)) %>% filter(id=="0184"|id=="0703"|id=="0180")
+chart_data3 <- chart_data %>% 
+  mutate(id=as.character(id)) %>% 
+  filter(id=="0184"|id=="0703"|id=="0180")
 
+# create one dataframe
+# I need: id, monthyear percentage and value
+chart_data3 <- chart_data3 %>% mutate(value=if_else(id=="0184", "Urk", ""),
+                                      value=if_else(id=="0703", "Reimerswaal", value),
+                                      value=if_else(id=="0180", "Staphorst", value),
+                                      percentage=perc_inf) %>% select(id, monthyear, value, percentage)
+
+chart_data_total <- chart_data4 %>% rbind(chart_data3)
+
+chart_data_total %>%
+  ggplot(aes(x = monthyear, y = percentage, colour = value, group = value)) +
+  geom_point() +
+  geom_line()
+
+subset_mean <- chart_data_total[1:63,]
+  
+subset_mean <- subset_mean %>%
+  pivot_wider(names_from = value,
+              values_from = percentage) %>%
+  rename(percentage = covid_per_mean,
+         min = covid_per_25,
+         max = covid_per_75) %>%
+  mutate(value = "covid_overall")
+
+subset_mean
+
+subset2 <-  chart_data_total[64:126,] %>%
+  mutate(min = NA, 
+         max = NA)
+
+data <- rbind(subset2, subset_mean)
+
+data %>%
+  filter((value %in% c("Urk", "covid_overall")) &
+           monthyear != "2022-03") %>%
+  ggplot(aes(x = monthyear, y = percentage, group = value)) +
+  geom_line(aes(colour = value)) +
+  geom_ribbon(aes(ymin = min, ymax = max), alpha = 0.2) +
+  theme(axis.text.x = element_text(angle = 45))
 
 ### Create first chart for chart_data2
 chart_data2 %>% ggplot(aes(x=monthyear, y="percentage"))+
