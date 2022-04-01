@@ -146,7 +146,7 @@ plot_day_1 <- plot + scale_color_discrete(name="Municipalities",
                          breaks=c("covid_overall", "Urk"),
                          labels=c("All", "Urk"))
 
-ggsave(plot = plot_day_1, file = "plots/day_1/plot_day_1.tiff", height = 5, width = 7, dpi = 320)
+ggsave(plot = plot_day_1, file = "plots/day_1/plot_day_1.png", height = 5, width = 7, dpi = 320)
 
 
 
